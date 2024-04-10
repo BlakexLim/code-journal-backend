@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { type Entry } from '../data';
+import { readToken } from '../lib';
 
 /**
  * Form that adds or edits an entry.
@@ -22,7 +23,11 @@ export function EntryForm() {
     async function load(id: number) {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/entries/${id}`);
+        const req = {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${readToken()}` },
+        };
+        const response = await fetch(`/api/entries/${id}`, req);
         if (!response) throw new Error('Network response is not ok.');
         const result = await response.json();
         setEntry(result);
@@ -45,6 +50,7 @@ export function EntryForm() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${readToken()}`,
         },
         body: JSON.stringify(newEntry),
       };
@@ -53,12 +59,13 @@ export function EntryForm() {
       if (!response) throw new Error('Network response is not ok.');
       const result = await response.json();
       console.log(`update successfully ${result.entryId}`);
-      navigate('/');
+      navigate('/entryList');
     } else {
       const req = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${readToken()}`,
         },
         body: JSON.stringify(newEntry),
       };
@@ -67,17 +74,19 @@ export function EntryForm() {
       const result = await response.json();
       console.log('user: ', result);
       alert(`${result.entryId} added`);
-      navigate('/');
+      navigate('/entryList');
     }
   }
 
   async function handleDelete() {
     if (!entry?.entryId) throw new Error('Should never happen');
-    navigate('/');
+    navigate('/entryList');
     if (isDeleting) {
       const req = {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Bearer ${readToken()}`,
+        },
       };
       const response = await fetch(`/api/entries/${entryId}`, req);
       if (!response.ok) throw new Error('Network response was not ok');
