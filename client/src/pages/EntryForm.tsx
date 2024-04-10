@@ -1,12 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  type Entry,
-  addEntry,
-  readEntry,
-  removeEntry,
-  updateEntry,
-} from '../data';
+import { type Entry } from '../data';
 
 /**
  * Form that adds or edits an entry.
@@ -28,10 +22,11 @@ export function EntryForm() {
     async function load(id: number) {
       setIsLoading(true);
       try {
-        const entry = await readEntry(id);
-        if (!entry) throw new Error(`Entry with ID ${id} not found`);
-        setEntry(entry);
-        setPhotoUrl(entry.photoUrl);
+        const response = await fetch(`/api/entries/${id}`);
+        if (!response) throw new Error('Network response is not ok.');
+        const result = await response.json();
+        setEntry(result);
+        setPhotoUrl(result.photoUrl);
       } catch (err) {
         setError(err);
       } finally {
@@ -39,24 +34,57 @@ export function EntryForm() {
       }
     }
     if (isEditing) load(+entryId);
-  }, [entryId]);
+  }, [entryId, isEditing]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const newEntry = Object.fromEntries(formData) as unknown as Entry;
     if (isEditing) {
-      updateEntry({ ...entry, ...newEntry });
+      const req = {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newEntry),
+      };
+
+      const response = await fetch(`/api/entries/${entryId}`, req);
+      if (!response) throw new Error('Network response is not ok.');
+      const result = await response.json();
+      console.log(`update successfully ${result.entryId}`);
+      navigate('/');
     } else {
-      addEntry(newEntry);
+      const req = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newEntry),
+      };
+      const response = await fetch('/api/entries', req);
+      if (!response) throw new Error('Network response is not ok.');
+      const result = await response.json();
+      console.log('user: ', result);
+      alert(`${result.entryId} added`);
+      navigate('/');
     }
-    navigate('/');
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!entry?.entryId) throw new Error('Should never happen');
-    removeEntry(entry.entryId);
     navigate('/');
+    if (isDeleting) {
+      const req = {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      };
+      const response = await fetch(`/api/entries/${entryId}`, req);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const result = await response.json();
+      alert(`${result.entryId} deleted`);
+      console.log(result, 'deleted');
+    }
   }
 
   if (isLoading) return <div>Loading...</div>;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaPencilAlt } from 'react-icons/fa';
-import { Entry, readEntries } from '../data';
+import { Entry } from '../data';
 
 export function EntryList() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -11,8 +11,10 @@ export function EntryList() {
   useEffect(() => {
     async function load() {
       try {
-        const entries = await readEntries();
-        setEntries(entries);
+        const response = await fetch('/api/entries');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const resJson = await response.json();
+        setEntries(resJson);
       } catch (err) {
         setError(err);
       } finally {
